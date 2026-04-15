@@ -8,9 +8,8 @@ url = "https://rss.epublibre.org/csv"
 response = requests.get(url)
 response.raise_for_status()
 
-
 with zipfile.ZipFile(io.BytesIO(response.content)) as z:
-    with z.open("datos.csv") as f:
+    with z.open("epublibre.csv") as f:
         df = pd.read_csv(f)
 
 
