@@ -183,7 +183,7 @@ function EpubLibre:showSearchResults(query)
                                             os.execute("killall rain 2>/dev/null")
                                             os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                             UIManager:close(self.dl_dialog)
-                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout " .. (self.config.torrent_timeout // 60) .. " min)" })
+                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout " .. math.floor(self.config.torrent_timeout / 60) .. " min)" })
                                             return
                                         end
 
