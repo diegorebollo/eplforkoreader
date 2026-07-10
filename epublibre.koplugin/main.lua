@@ -429,10 +429,6 @@ end
 
 function EpubLibre:checkDBUpdate()
     local local_ver = self:readLocalDBVersion()
-    UIManager:show(InfoMessage:new {
-        text = "DB local: " .. local_ver .. "\nComprobando...",
-        timeout = 1,
-    })
     local tmp = "/tmp/db_remote_ver.txt"
     os.execute("curl -sL -o '" .. tmp .. "' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
     local f = io.open(tmp)
@@ -450,7 +446,7 @@ function EpubLibre:checkDBUpdate()
     remote_ver = remote_ver:match("^%s*(.-)%s*$")
 
     if remote_ver == local_ver then
-        UIManager:show(InfoMessage:new { text = "DB ya actualizada (" .. local_ver .. ")" })
+        UIManager:show(InfoMessage:new { text = "DB actualizada (" .. local_ver .. ")" })
     else
         self:confirmDBUpdate(local_ver, remote_ver)
     end
