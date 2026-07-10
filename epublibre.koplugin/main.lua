@@ -44,11 +44,11 @@ function EpubLibre:searchInDB(query)
         end
     end
     local like_pattern = "%" .. query .. "%"
-    local sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ?"
+    local sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ? LIMIT 200"
     local author_prefix = query:lower():match("^author:%s*(.*)")
     if author_prefix and #author_prefix > 0 then
         like_pattern = "%" .. author_prefix .. "%"
-        sql = "SELECT * FROM books WHERE author LIKE ?"
+        sql = "SELECT * FROM books WHERE author LIKE ? LIMIT 200"
     end
     local stmt = self.db:prepare(sql)
     if not stmt then
@@ -118,8 +118,12 @@ function EpubLibre:showSearchResults(query)
                                     for _, t in ipairs(self.config.trackers) do
                                         TRACKERS = TRACKERS .. "&tr=" .. t
                                     end
-                                    local magnet_with_tr = magnet .. "&dn=" .. title:gsub(" ", "%%20") .. TRACKERS
-                                    local rain = "/mnt/us/koreader/plugins/epublibre.koplugin/bin/rain"
+                                    local safe_title = title:gsub("[ &%%#=+]", {
+                                        [" "] = "%%20", ["%%"] = "%%25", ["&"] = "%%26",
+                                        ["#"] = "%%23", ["="] = "%%3D", ["+"] = "%%2B",
+                                    })
+                                    local magnet_with_tr = magnet .. "&dn=" .. safe_title .. TRACKERS
+                                    local rain = self.path .. "/bin/rain"
                                     local rf = io.open(rain)
                                     if not rf then
                                         UIManager:show(InfoMessage:new {
@@ -129,6 +133,13 @@ function EpubLibre:showSearchResults(query)
                                         return
                                     end
                                     rf:close()
+                                    if os.execute("test -x '" .. rain .. "' 2>/dev/null") ~= 0 then
+                                        UIManager:show(InfoMessage:new {
+                                            text = "Binario rain sin permisos",
+                                            timeout = 3,
+                                        })
+                                        return
+                                    end
                                     local outdir = self.config.books_dir
                                     os.execute("mkdir -p '" .. outdir .. "'")
                                     local tmpfile = "/tmp/rain_" .. os.time() .. ".txt"
@@ -151,6 +162,7 @@ function EpubLibre:showSearchResults(query)
                                                     callback = function()
                                                         self.dl_active = false
                                                         os.execute("killall rain 2>/dev/null")
+                                                        os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                                         UIManager:close(self.dl_dialog)
                                                     end,
                                                 },
@@ -169,8 +181,9 @@ function EpubLibre:showSearchResults(query)
                                         if os.time() - self.dl_start > self.config.torrent_timeout then
                                             self.dl_active = false
                                             os.execute("killall rain 2>/dev/null")
+                                            os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                             UIManager:close(self.dl_dialog)
-                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout 5 min)" })
+                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout " .. (self.config.torrent_timeout // 60) .. " min)" })
                                             return
                                         end
 
@@ -182,15 +195,14 @@ function EpubLibre:showSearchResults(query)
                                             local content = f:read("*a")
                                             f:close()
                                             done = content:find("download completed") ~= nil
-                                                or content:find("torrent has stopped") ~= nil
                                             for line in content:gmatch("[^\n]+") do last = line end
-                                            pct = tonumber(last:match("Progress: (%d+)%%") or "0") or 0
-                                            logger.dbg("DLL poll: last=", last)
+                                            pct = tonumber(last and last:match("Progress: (%d+)%%") or "0") or 0
+                                            logger.dbg("DLL poll: last=", tostring(last))
                                         end
 
                                         if done then
                                             self.dl_active = false
-                                            os.execute("rm -f '" .. resume_path .. "' 2>/dev/null")
+                                            os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                             UIManager:close(self.dl_dialog)
                                             UIManager:show(InfoMessage:new { text = "Descarga completada" })
                                             self.ui.file_chooser:refreshPath()
@@ -285,7 +297,7 @@ function EpubLibre:addToMainMenu(menu_items)
                 text = "Acerca de",
                 callback = function()
                     UIManager:show(InfoMessage:new {
-                        text = "Plugin EpubLibre v0.1",
+                        text = "Plugin EpubLibre v1.0.0",
                     })
                 end,
             },
@@ -405,7 +417,7 @@ function EpubLibre:downloadDB(path)
     local gz_path = path .. ".gz"
     local ok = os.execute("curl -sL -o '" .. gz_path .. "' '" .. DB_BASE .. "/datos.db.gz' 2>/dev/null")
     if ok == 0 or ok == true then
-        os.execute("gunzip -f '" .. gz_path .. "'")
+        os.execute("gzip -df '" .. gz_path .. "' 2>/dev/null")
         os.execute("rm -f '" .. gz_path .. "'")
         os.execute("curl -sL -o '" .. self.path .. "/db_version.txt' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
     end

@@ -43,3 +43,12 @@ luac.out
 epublibre.koplugin/db.db
 datos.db
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+
+# macOS
+.DS_Store
+
