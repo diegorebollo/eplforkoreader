@@ -20,14 +20,12 @@ function EpubLibre:init()
     local db_path = self.path .. "/db.db"
     logger.dbg(db_path)
     local f = io.open(db_path)
-    if not f then
-        self:downloadDB(db_path)
-    else
+    if f then
         f:close()
-    end
-    self.db = SQ3.open(db_path)
-    if not self.db then
-        logger.warn("ePubLibre: could not open db at", db_path)
+        self.db = SQ3.open(db_path)
+        if not self.db then
+            logger.warn("ePubLibre: could not open db at", db_path)
+        end
     end
     local ok, cfg = pcall(dofile, self.path .. "/config.lua")
     self.config = ok and cfg or {}
@@ -37,6 +35,14 @@ function EpubLibre:init()
 end
 
 function EpubLibre:searchInDB(query)
+    if not self.db then
+        local db_path = self.path .. "/db.db"
+        self:downloadDB(db_path)
+        self.db = SQ3.open(db_path)
+        if not self.db then
+            return {}
+        end
+    end
     local like_pattern = "%" .. query .. "%"
     local sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ?"
     local author_prefix = query:lower():match("^author:%s*(.*)")
@@ -235,24 +241,24 @@ function EpubLibre:addToMainMenu(menu_items)
         sorting_hint = "search",
         sub_item_table = {
             {
-                text = "Search",
+                text = "Buscar",
                 callback = function()
                     self:searchDialog()
                 end,
             },
             {
-                text = "Configuración",
+                text = "Ajustes",
                 sub_item_table = {
                     {
-                        text = "Carpeta libros",
+                        text = "Carpeta de descargas",
                         callback = function()
-                            self:configInput("books_dir", "Carpeta de descarga")
+                            self:configInput("books_dir", "Carpeta de descargas")
                         end,
                     },
                     {
-                        text = "Timeout torrent",
+                        text = "Timeout de descarga",
                         callback = function()
-                            self:configInput("torrent_timeout", "Timeout (segundos)")
+                            self:configInput("torrent_timeout", "Timeout de descarga (segundos)")
                         end,
                     },
                     {
@@ -264,7 +270,9 @@ function EpubLibre:addToMainMenu(menu_items)
                 },
             },
             {
-                text = "Actualizar DB",
+                text = function()
+                    return "Actualizar base de datos [" .. self:readLocalDBVersion() .. "]"
+                end,
                 callback = function()
                     self:checkDBUpdate()
                 end,
@@ -285,7 +293,7 @@ function EpubLibre:searchDialog()
     local dialog
     dialog = InputDialog:new {
         title = "Search on ePubLibre",
-        input_hint = "author: J.K Rowling",
+        input_hint = "escribe o author: J.K Rowling",
         buttons = {
             {
                 {
@@ -306,6 +314,12 @@ function EpubLibre:searchDialog()
                                 timeout = 2,
                             })
                             return
+                        end
+                        if not self.db then
+                            UIManager:show(InfoMessage:new {
+                                text = "Descargando base de datos...",
+                                timeout = 1,
+                            })
                         end
                         self:showSearchResults(query)
                     end,
@@ -391,11 +405,11 @@ end
 
 function EpubLibre:downloadDB(path)
     local gz_path = path .. ".gz"
-    local ok = os.execute("wget -q -O '" .. gz_path .. "' '" .. DB_BASE .. "/datos.db.gz' 2>/dev/null")
+    local ok = os.execute("curl -sL -o '" .. gz_path .. "' '" .. DB_BASE .. "/datos.db.gz' 2>/dev/null")
     if ok == 0 or ok == true then
         os.execute("gunzip -f '" .. gz_path .. "'")
         os.execute("rm -f '" .. gz_path .. "'")
-        os.execute("wget -q -O '" .. self.path .. "/db_version.txt' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
+        os.execute("curl -sL -o '" .. self.path .. "/db_version.txt' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
     end
 end
 
@@ -416,7 +430,7 @@ function EpubLibre:checkDBUpdate()
         timeout = 1,
     })
     local tmp = "/tmp/db_remote_ver.txt"
-    os.execute("wget -q -O '" .. tmp .. "' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
+    os.execute("curl -sL -o '" .. tmp .. "' '" .. DB_BASE .. "/db_version.txt' 2>/dev/null")
     local f = io.open(tmp)
     if not f then
         UIManager:show(InfoMessage:new { text = "Sin conexión", timeout = 2 })
