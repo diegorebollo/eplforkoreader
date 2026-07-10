@@ -169,7 +169,7 @@ function EpubLibre:showSearchResults(query)
                                             os.execute("killall rain 2>/dev/null")
                                             os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                             UIManager:close(self.dl_dialog)
-                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout " .. math.floor(self.config.torrent_timeout / 60) .. " min)" })
+                                            UIManager:show(InfoMessage:new { text = "Cancelada (timeout " .. math.floor(self.config.torrent_timeout / 60) .. " min)", timeout = 3 })
                                             return
                                         end
 
@@ -190,7 +190,7 @@ function EpubLibre:showSearchResults(query)
                                             self.dl_active = false
                                             os.execute("rm -f '" .. tmpfile .. "' '" .. resume_path .. "' 2>/dev/null")
                                             UIManager:close(self.dl_dialog)
-                                            UIManager:show(InfoMessage:new { text = "Descarga completada" })
+                                            UIManager:show(InfoMessage:new { text = "Descarga completada", timeout = 3 })
                                             self.ui.file_chooser:refreshPath()
                                             return
                                         end
@@ -446,7 +446,7 @@ function EpubLibre:checkDBUpdate()
     remote_ver = remote_ver:match("^%s*(.-)%s*$")
 
     if remote_ver == local_ver then
-        UIManager:show(InfoMessage:new { text = "DB actualizada (" .. local_ver .. ")" })
+        UIManager:show(InfoMessage:new { text = "DB actualizada (" .. local_ver .. ")", timeout = 3 })
     else
         self:confirmDBUpdate(local_ver, remote_ver)
     end
