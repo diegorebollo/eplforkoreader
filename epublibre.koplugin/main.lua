@@ -270,9 +270,7 @@ function EpubLibre:addToMainMenu(menu_items)
                 },
             },
             {
-                text = function()
-                    return "Actualizar base de datos [" .. self:readLocalDBVersion() .. "]"
-                end,
+                text = "Actualizar base de datos",
                 callback = function()
                     self:checkDBUpdate()
                 end,
