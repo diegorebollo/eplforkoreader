@@ -123,7 +123,7 @@ function EpubLibre:showSearchResults(query)
                                         ["#"] = "%%23", ["="] = "%%3D", ["+"] = "%%2B",
                                     })
                                     local magnet_with_tr = magnet .. "&dn=" .. safe_title .. TRACKERS
-                                    local rain = self.path .. "/bin/rain"
+                                    local rain = "/mnt/us/koreader/plugins/epublibre.koplugin/bin/rain"
                                     local rf = io.open(rain)
                                     if not rf then
                                         UIManager:show(InfoMessage:new {
@@ -133,13 +133,6 @@ function EpubLibre:showSearchResults(query)
                                         return
                                     end
                                     rf:close()
-                                    if os.execute("test -x '" .. rain .. "' 2>/dev/null") ~= 0 then
-                                        UIManager:show(InfoMessage:new {
-                                            text = "Binario rain sin permisos",
-                                            timeout = 3,
-                                        })
-                                        return
-                                    end
                                     local outdir = self.config.books_dir
                                     os.execute("mkdir -p '" .. outdir .. "'")
                                     local tmpfile = "/tmp/rain_" .. os.time() .. ".txt"
