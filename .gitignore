@@ -39,3 +39,7 @@ luac.out
 *.x86_64
 *.hex
 
+# Plugin DB (downloaded on Kindle, compressed version in repo)
+epublibre.koplugin/db.db
+datos.db
+
