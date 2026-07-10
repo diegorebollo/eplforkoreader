@@ -242,13 +242,18 @@ function EpubLibre:addToMainMenu(menu_items)
                 text = "Buscar",
                 callback = function()
                     if not self.db then
-                        UIManager:show(InfoMessage:new {
-                            text = "Descargando base de datos...",
-                            timeout = 1,
-                        })
-                        local db_path = self.path .. "/db.db"
-                        self:downloadDB(db_path)
-                        self.db = SQ3.open(db_path)
+                        local dl_msg = ButtonDialogTitle:new {
+                            title = "Descargando base de datos...",
+                        }
+                        UIManager:show(dl_msg)
+                        UIManager:scheduleIn(0.5, function()
+                            local db_path = self.path .. "/db.db"
+                            self:downloadDB(db_path)
+                            self.db = SQ3.open(db_path)
+                            UIManager:close(dl_msg)
+                            self:searchDialog()
+                        end)
+                        return
                     end
                     self:searchDialog()
                 end,
