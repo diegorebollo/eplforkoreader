@@ -292,6 +292,7 @@ function EpubLibre:addToMainMenu(menu_items)
                 callback = function()
                     UIManager:show(InfoMessage:new {
                         text = "Plugin EpubLibre v1.0.0",
+                        timeout = 3,
                     })
                 end,
             },
