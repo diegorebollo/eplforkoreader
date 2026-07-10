@@ -35,14 +35,7 @@ function EpubLibre:init()
 end
 
 function EpubLibre:searchInDB(query)
-    if not self.db then
-        local db_path = self.path .. "/db.db"
-        self:downloadDB(db_path)
-        self.db = SQ3.open(db_path)
-        if not self.db then
-            return {}
-        end
-    end
+    if not self.db then return {} end
     local like_pattern = "%" .. query .. "%"
     local sql = "SELECT * FROM books WHERE title LIKE ? OR author LIKE ? LIMIT 200"
     local author_prefix = query:lower():match("^author:%s*(.*)")
@@ -253,6 +246,9 @@ function EpubLibre:addToMainMenu(menu_items)
                             text = "Descargando base de datos...",
                             timeout = 1,
                         })
+                        local db_path = self.path .. "/db.db"
+                        self:downloadDB(db_path)
+                        self.db = SQ3.open(db_path)
                     end
                     self:searchDialog()
                 end,
