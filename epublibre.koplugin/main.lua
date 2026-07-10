@@ -243,6 +243,12 @@ function EpubLibre:addToMainMenu(menu_items)
             {
                 text = "Buscar",
                 callback = function()
+                    if not self.db then
+                        UIManager:show(InfoMessage:new {
+                            text = "Descargando base de datos...",
+                            timeout = 1,
+                        })
+                    end
                     self:searchDialog()
                 end,
             },
@@ -312,12 +318,6 @@ function EpubLibre:searchDialog()
                                 timeout = 2,
                             })
                             return
-                        end
-                        if not self.db then
-                            UIManager:show(InfoMessage:new {
-                                text = "Descargando base de datos...",
-                                timeout = 1,
-                            })
                         end
                         self:showSearchResults(query)
                     end,
