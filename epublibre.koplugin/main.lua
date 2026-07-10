@@ -242,8 +242,9 @@ function EpubLibre:addToMainMenu(menu_items)
                 text = "Buscar",
                 callback = function()
                     if not self.db then
-                        local dl_msg = ButtonDialogTitle:new {
-                            title = "Descargando base de datos...",
+                        local dl_msg = InfoMessage:new {
+                            text = "Descargando base de datos...",
+                            timeout = nil,
                         }
                         UIManager:show(dl_msg)
                         UIManager:scheduleIn(0.5, function()
