@@ -3,7 +3,7 @@ name: Build Rain binary
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 8 * * 1"
+    - cron: "0 8 * * *"
 
 jobs:
   build:
@@ -11,30 +11,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check latest Rain release
+        id: check
+        run: |
+          LATEST=$(curl -s https://api.github.com/repos/cenkalti/rain/releases/latest | jq -r .tag_name)
+          echo "latest=${LATEST}" >> $GITHUB_OUTPUT
+
+          if [ -f rain_version.txt ]; then
+            BUILT=$(cat rain_version.txt)
+          else
+            BUILT=""
+          fi
+          echo "built=${BUILT}" >> $GITHUB_OUTPUT
+
+          if [ "${LATEST}" = "${BUILT}" ] && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "No new release (latest=${LATEST}, built=${BUILT}). Skipping."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "New release: ${LATEST} (was: ${BUILT})"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/setup-go@v5
+        if: steps.check.outputs.skip != 'true'
         with:
           go-version: "1.23"
 
       - name: Install UPX
+        if: steps.check.outputs.skip != 'true'
         run: sudo apt-get install -y upx-ucl
 
       - name: Clone and build Rain for ARMv7
+        if: steps.check.outputs.skip != 'true'
         run: |
-          git clone --depth 1 https://github.com/cenkalti/rain /tmp/rain
+          git clone --branch "${{ steps.check.outputs.latest }}" --depth 1 https://github.com/cenkalti/rain /tmp/rain
           cd /tmp/rain
           GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-s -w" -o /tmp/rain-armv7
 
       - name: Compress with UPX
+        if: steps.check.outputs.skip != 'true'
         run: upx --best /tmp/rain-armv7
 
       - name: Copy binary to plugin
+        if: steps.check.outputs.skip != 'true'
         run: |
           cp /tmp/rain-armv7 epublibre.koplugin/bin/rain
           chmod +x epublibre.koplugin/bin/rain
 
+      - name: Update version file
+        if: steps.check.outputs.skip != 'true'
+        run: echo "${{ steps.check.outputs.latest }}" > rain_version.txt
+
       - name: Commit and push if changed
+        if: steps.check.outputs.skip != 'true'
         run: |
           git config user.name github-actions
           git config user.email actions@github.com
-          git add epublibre.koplugin/bin/rain
-          git diff --staged --quiet || (git commit -m "Update Rain binary" && git push)
+          git add epublibre.koplugin/bin/rain rain_version.txt
+          git diff --staged --quiet || (git commit -m "Update Rain binary to ${{ steps.check.outputs.latest }}" && git push)
